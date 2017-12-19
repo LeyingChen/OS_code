@@ -271,7 +271,34 @@ void fake_irq7(void) {
 void handle_tlb_c(void)
 {
     printk("\n\n\nHandle TLB requirement!!!\n\n\n");
-    while (1) {
+    /*while (1) {
     ;
+    }*/
+    uint32_t bad_vaddr;
+    bad_vaddr = current_running->user_tf.cp0_badvaddr;
+    uint32_t pagetable_addr;
+    pagetable_addr = current_running->page_table;
+    //int i;
+    /*if(((uint32_t *)pagetable_addr)[bad_vaddr>>12] & 0x4){
+        return ((uint32_t *)pagetable_addr)[bad_vaddr>>12]; //target pte
     }
+    return -1;*/
+    uint32_t entry_lo0, entry_lo1;
+    if(((uint32_t *)pagetable_addr)[bad_vaddr>>12] & 0x4){
+        if((((uint32_t *)pagetable_addr)[bad_vaddr>>12]>>12) & 0x1){ //paddr is odd
+            entry_lo0 = ((uint32_t *)pagetable_addr)[(bad_vaddr>>12) - 1]
+            entry_lo1 = ((uint32_t *)pagetable_addr)[bad_vaddr>>12];
+        } else { //paddr is even
+            entry_lo0 = ((uint32_t *)pagetable_addr)[bad_vaddr>>12];
+            entry_lo1 = ((uint32_t *)pagetable_addr)[(bad_vaddr>>12) + 1];
+        }
+    } else {
+        return; //page fault
+    }
+
+    asm volatile( "mtc0 %0, CP0_ENTRYLO0\n\t"
+         "mtc0 %1, CP0_ENTRYLO1"
+         :
+         :"r"(entry_lo0), "r"(entry_lo1));
+    return;
 }

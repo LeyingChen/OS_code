@@ -25,6 +25,10 @@ enum {
 
 /* TODO: Structure of an entry in the page map */
 typedef struct {
+    uint32_t paddr;
+    uint32_t vaddr;
+    int pinned;
+    int is_used;
     // design here
 } page_map_entry_t;
 
@@ -45,7 +49,7 @@ int page_alloc(int pinned);
 uint32_t init_memory(void);
 
 /* Set up a page directory and page table for the given process. Fill in
- * any necessary information in the pcb. 
+ * any necessary information in the pcb.
  */
 uint32_t setup_page_table(int pid);
 

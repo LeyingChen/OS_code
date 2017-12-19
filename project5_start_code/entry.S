@@ -192,15 +192,13 @@
   sw      k1, 0(k0)
 .endm
 
-/* TODO: Test current_running->nested_count, clobbering only eflags */
+/* Test current_running->nested_count, clobbering only eflags */
 .macro TEST_NESTED_COUNT
   la      k0, current_running
   lw      k0, 0(k0)
   lw      k0, NESTED_COUNT(k0)
   bne     k0, $0, ret
 .endm
-
-/** TODO end */
 
   .data
 // Temporary storage for 32-bit registers
@@ -340,7 +338,7 @@ NESTED(handle_int,0,sp)
   li    k1, 7
 
 //  ENTER_CRITICAL
-  
+
   bne   k0,k1,do_nothing
   jal   timer_irq
 
@@ -380,18 +378,43 @@ LEAF(tlb_flush)
     tlbwi
 NOFOUND:
     mtc0    k1,CP0_ENTRYHI
-    j   ra
+    jr      ra
     nop
 END(tlb_flush)
 
-//TO DO
-LEAF(set_pt)
-
+/* DONE */
+LEAF(set_pt) #change the ASID of entryhi
+    la      k1, current_running
+    lw      k1, 0(k1)
+    lw      k1, 328(k1)          #pid
+    mfc0    k0, CP0_ENTRYHI
+    andi    k0, k0, 0xfffff000
+    andi    k1, k1, 0x00000fff
+    ori     k0, k0, k1
+    mtc0    k0, CP0_ENTRYHI
+    jr      ra
 END(set_pt)
 
-//TO DO
+/* DONE */
 NESTED(handle_tlb,0,sp)
-   jal handle_tlb_c
+    SAVE_CONTEXT(USER)
+    jal     handle_tlb_c         #v0 is the pte now
+    mfc0    k0, CP0_BADVADDR
+    srl     k0, k0, 12
+    la      k1, current_running
+    lw      k1, 0(k1)
+    lw      k1, 328(k1)          #pid
+    andi    k1, k1, 0x00000fff
+    or      k0, k0, k1
+    mtc0    k0, CP0_ENTRYHI
+    li      k0, 0x00000000
+    mtc0    k0, CP0_PAGEMASK
+    # i hope cp0_entryLo0, cp0_entryLo1
+    # can be solved in c-code
+    tlbwr
+    LEAVE_CRITICAL
+    RESTORE_CONTEXT(USER)
+    j return_from_exception
 END(handle_tlb)
 
 // --------------------------------- P5 end --------------------------------

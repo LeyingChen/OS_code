@@ -118,53 +118,53 @@ int main(int argc, char *argv[]){
 	FILE *process1_file;
 	Elf32_Ehdr *process1_ehdr;
 	Elf32_Phdr *process1_phdr;
-	int process1_sector = 256;
+	int process1_sector = 51;
 
 	FILE *process2_file;
 	Elf32_Ehdr *process2_ehdr;
 	Elf32_Phdr *process2_phdr;
-	int process2_sector = 272;
+	int process2_sector = 58;
 
-	FILE *process3_file;
-	Elf32_Ehdr *process3_ehdr;
-	Elf32_Phdr *process3_phdr;
-	int process3_sector = 288;
+	//FILE *process3_file;
+	//Elf32_Ehdr *process3_ehdr;
+	//Elf32_Phdr *process3_phdr;
+	//int process3_sector = 288;
 
-	FILE *process4_file;
-	Elf32_Ehdr *process4_ehdr;
-	Elf32_Phdr *process4_phdr;
-	int process4_sector = 304;
+	//FILE *process4_file;
+	//Elf32_Ehdr *process4_ehdr;
+	//Elf32_Phdr *process4_phdr;
+	//int process4_sector = 304;
 
 	kernel_ehdr = malloc(sizeof(Elf32_Ehdr));
 	boot_ehdr = malloc(sizeof(Elf32_Ehdr));
 
 	process1_ehdr = malloc(sizeof(Elf32_Ehdr));
 	process2_ehdr = malloc(sizeof(Elf32_Ehdr));
-	process3_ehdr = malloc(sizeof(Elf32_Ehdr));
-	process4_ehdr = malloc(sizeof(Elf32_Ehdr));
+	//process3_ehdr = malloc(sizeof(Elf32_Ehdr));
+	//process4_ehdr = malloc(sizeof(Elf32_Ehdr));
 
 	image_file = fopen("image", "w+");
 
-	boot_phdr = read_exec_file(&boot_file, argv[argc-6], &boot_ehdr);
+	boot_phdr = read_exec_file(&boot_file, argv[argc-4], &boot_ehdr);
 	write_bootblock(&image_file, boot_file, boot_ehdr, boot_phdr);
 
-	kernel_phdr = read_exec_file(&kernel_file, argv[argc-5], &kernel_ehdr);
+	kernel_phdr = read_exec_file(&kernel_file, argv[argc-3], &kernel_ehdr);
 	write_kernel(&image_file, kernel_file, kernel_ehdr, kernel_phdr);
 
-	process1_phdr = read_exec_file(&process1_file, argv[argc-4], &process1_ehdr);
+	process1_phdr = read_exec_file(&process1_file, argv[argc-2], &process1_ehdr);
 	write_process(&image_file, process1_file, process1_ehdr, process1_phdr, process1_sector);
-	process2_phdr = read_exec_file(&process2_file, argv[argc-3], &process2_ehdr);
+	process2_phdr = read_exec_file(&process2_file, argv[argc-1], &process2_ehdr);
 	write_process(&image_file, process2_file, process2_ehdr, process2_phdr, process2_sector);
-	process3_phdr = read_exec_file(&process3_file, argv[argc-2], &process3_ehdr);
-	write_process(&image_file, process3_file, process3_ehdr, process3_phdr, process3_sector);
-	process4_phdr = read_exec_file(&process4_file, argv[argc-1], &process4_ehdr);
-	write_process(&image_file, process4_file, process4_ehdr, process4_phdr, process4_sector);
+	//process3_phdr = read_exec_file(&process3_file, argv[argc-2], &process3_ehdr);
+	//write_process(&image_file, process3_file, process3_ehdr, process3_phdr, process3_sector);
+	//process4_phdr = read_exec_file(&process4_file, argv[argc-1], &process4_ehdr);
+	//write_process(&image_file, process4_file, process4_ehdr, process4_phdr, process4_sector);
 
 	k_phnum = kernel_ehdr->e_phnum;
 
 //	num_sec = count_kernel_sectors(kernel_ehdr, kernel_phdr);
 //	record_kernel_sectors(&image_file, kernel_ehdr, kernel_phdr, num_sec);
-	num_sec = process4_sector + count_sectors(process4_ehdr, process4_phdr) - 1;
+	num_sec = process2_sector + count_sectors(process2_ehdr, process2_phdr) - 1;
 	record_sectors(&image_file, num_sec);
 
 	if(!strncmp("--extended", argv[1], 11)) extended_opt(boot_phdr, k_phnum, kernel_phdr, num_sec, boot_file, kernel_file);
@@ -174,8 +174,8 @@ int main(int argc, char *argv[]){
 	fclose(image_file);
 	fclose(process1_file);
 	fclose(process2_file);
-	fclose(process3_file);
-	fclose(process4_file);
+	//fclose(process3_file);
+	//fclose(process4_file);
 
 	free(kernel_ehdr);
 	free(kernel_phdr);
@@ -185,8 +185,8 @@ int main(int argc, char *argv[]){
 	free(process1_phdr);
 	free(process2_ehdr);
 	free(process2_phdr);
-	free(process3_ehdr);
-	free(process3_phdr);
-	free(process4_ehdr);
-	free(process4_phdr);
+	//free(process3_ehdr);
+	//free(process3_phdr);
+	//free(process4_ehdr);
+	//free(process4_phdr);
 }

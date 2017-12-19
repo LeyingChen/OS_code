@@ -53,7 +53,8 @@ void scheduler(){
      }
      current_running = (pcb_t *) dequeue(&ready_queue);
      // TODO: switch page table for process
-     
+     set_pt();
+
      ASSERT(NULL != current_running);
      ++current_running->entry_count;
 }
