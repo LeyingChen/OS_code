@@ -401,33 +401,31 @@ END(set_pt)
 /* DONE */
 NESTED(handle_tlb,0,sp)
     SAVE_CONTEXT(USER)
-    PUTCHAR 65 P5
+    #PUTCHAR 65 P5
+    jal     handle_tlb_c          # let's see if it is a page fault
     nop
     la      t7, current_running
     lw      t7, 0(t7)
     lw      t0, 328(t7)           # pid
     lw      t1, 360(t7)           # page table addr for pcb[pid]
-    lw      t3, 304(t7)           # badvaddr
-    #mfc0    t2, CP0_BADVADDR      # badvaddr
-    PUTCHAR 67 P7
-    #mfc0    t1, CP0_BADVADDR
-    #nop
+    #lw      t3, 304(t7)           # badvaddr
+    mfc0    t3, CP0_BADVADDR      # badvaddr
+    #PUTCHAR 67 P7
     srl     t2, t3, 12
     li      t6, 0xfffffffe
     and     t2, t2, t6            # vaddr
     sll     t2, t2, 2             # vaddr*4
     add     t1, t1, t2            # page_table[vaddr]
 
-    #jal     handle_tlb_c          # v0 is the pte now
     #nop
 
-    PUTCHAR 68 P8
+    #PUTCHAR 68 P8
 
     lw      t4, 0(t1)             #
     mtc0    t4, CP0_ENTRYLO0
     lw      t5, 4(t1)             # care nothing about V-bit?
     mtc0    t5, CP0_ENTRYLO1
-    PUTCHAR 69 P9
+    #PUTCHAR 69 P9
 
     #PUTCHAR 71 P11
     li      t4, 0xffffe000
@@ -436,14 +434,14 @@ NESTED(handle_tlb,0,sp)
     mtc0    t0, CP0_ENTRYHI
     #li      t0, 0x00000000
     mtc0    zero, CP0_PAGEMASK
-    PUTCHAR 72 P12
+    #PUTCHAR 72 P12
 
     tlbwr
     nop
     nop
     #LEAVE_CRITICAL
     RESTORE_CONTEXT(USER)
-    PUTCHAR 73 P13
+    #PUTCHAR 73 P13
     j return_from_exception
 END(handle_tlb)
 

@@ -273,19 +273,24 @@ void handle_tlb_c(void)
 {
     printk("\nHandle TLB requirement!!!\n");
     uint32_t bad_vaddr = current_running->user_tf.cp0_badvaddr;
-    printk("badaddr: 0x%x\n", bad_vaddr);
+    printk("badaddr: 0x%08x\n", bad_vaddr);
     uint32_t pt_addr = current_running->page_table;
-    printk("page_table addr: 0x%08x\n", pt_addr);
-    uint32_t pte_ctt1 = ((uint32_t *)pt_addr)[bad_vaddr>>12];
-    printk("pte1 content: 0x%08x\n", pte_ctt1);
-    uint32_t pte_ctt2 = ((uint32_t *)pt_addr)[(bad_vaddr>>12) + 1];
-    printk("pte2 content: 0x%08x\n", pte_ctt2);
-
-    printk("registers info:\n");
-    printk("t0: %08x\tt1: %08x\tt2: %08x\tt3: %08x\t\n", 
-        current_running->user_tf.regs[8], current_running->user_tf.regs[9],
-        current_running->user_tf.regs[10], current_running->user_tf.regs[11]);
-
+    printk("r u kidding me???\n");
+    uint32_t pte_ctt = ((uint32_t *)pt_addr)[bad_vaddr>>12];
+    // find disk_addr through current_running;
+    printk("pte: 0x%08x\n", pte_ctt);
+    if(!(pte_ctt&2)){ // invalid page
+        printk("handle page fault!\n");
+        uint32_t disk_loc = current_running->loc;
+        uint32_t pro_entry_point = current_running->entry_point;
+        // processes have only 1 page of code anyway
+        int code_index;
+        uint32_t flag = 0x02;
+        code_index = page_alloc(0); // alloc a page for code
+        printk("found a free page%d!\n", code_index);
+        refresh_page_map(code_index, pro_entry_point, disk_loc, flag, current_running->pid);
+    }
+    return; // now we've refresh the right pte
     /*while (1) {
     ;
     }*/
@@ -295,18 +300,6 @@ void handle_tlb_c(void)
     pagetable_addr = current_running->page_table;*/
     //int i;
     /*uint32_t entry_lo0, entry_lo1;
-    if(((uint32_t *)pagetable_addr)[bad_vaddr>>12] & 0x4){
-        if((((uint32_t *)pagetable_addr)[bad_vaddr>>12]>>12) & 0x1){ //paddr is odd
-            entry_lo0 = ((uint32_t *)pagetable_addr)[(bad_vaddr>>12) - 1]
-            entry_lo1 = ((uint32_t *)pagetable_addr)[bad_vaddr>>12];
-        } else { //paddr is even
-            entry_lo0 = ((uint32_t *)pagetable_addr)[bad_vaddr>>12];
-            entry_lo1 = ((uint32_t *)pagetable_addr)[(bad_vaddr>>12) + 1];
-        }
-    } else {
-        return; //page fault
-    }
-
     asm volatile( "mtc0 %0, CP0_ENTRYLO0\n\t"
          "mtc0 %1, CP0_ENTRYLO1"
          :

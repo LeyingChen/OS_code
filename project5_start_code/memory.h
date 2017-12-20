@@ -56,5 +56,5 @@ uint32_t setup_page_table(int pid);
 
 // other functions defined here
 //
-
+void refresh_page_map(int c_index, uint32_t vaddr, uint32_t daddr, uint32_t flag, int pid);
 #endif /* !MEMORY_H */

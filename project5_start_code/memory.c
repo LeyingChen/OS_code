@@ -105,22 +105,27 @@ uint32_t setup_page_table( int pid ) { //pid refers to the order of pcb(begin wi
     page_table = page_map[frame_index].paddr;
     int page_num;
     page_num = pcb[pid].size/PAGE_SIZE;
-    uint32_t pte_flag = 0x2;
+    uint32_t pte_flag = 0x04;  //C=000, D=1, V=0, G=0
     for(i=0; i<page_num; i++){
-        int code_findex;
-        code_findex = page_alloc(0); //alloc a page for code
-        //uint32_t p_vaddr = pcb[pid].entry_point;
-        page_map[code_findex].disk_addr = pcb[pid].loc + i*PAGE_SIZE; 
-        page_map[code_findex].vaddr = pcb[pid].entry_point + i*PAGE_SIZE;
-        bcopy((char *)page_map[code_findex].disk_addr,
-            (char *)(page_map[code_findex].paddr+i*(PAGE_SIZE)), PAGE_SIZE);//copy to frame directly
-        insert_page_table_entry((uint32_t *)page_table, page_map[code_findex].vaddr,
-            page_map[code_findex].paddr+i*(PAGE_SIZE), pte_flag, pid);
-        //printk("pid: %d src addr:0x%08x dst addr:0x%08x\n",
-        //    pid, (char *)(pcb[pid].loc+i*(PAGE_SIZE)), (char *)(page_map[code_findex].paddr+i*(PAGE_SIZE)));
+        //int code_findex;
+        //code_findex = page_alloc(0); //alloc a page for code
+        //page_map[code_findex].disk_addr = pcb[pid].loc + i*PAGE_SIZE; 
+        //page_map[code_findex].vaddr = pcb[pid].entry_point + i*PAGE_SIZE;
+        //bcopy((char *)page_map[code_findex].disk_addr,
+        //    (char *)(page_map[code_findex].paddr+i*(PAGE_SIZE)), PAGE_SIZE);//copy to frame directly
+        insert_page_table_entry((uint32_t *)page_table, pcb[pid].entry_point,
+            0x00000000, pte_flag, pid);
     }
 
     return page_table;
+}
+
+void refresh_page_map(int cindex, uint32_t vaddr, uint32_t daddr, uint32_t flag, int pid){
+    page_map[cindex].vaddr = vaddr;
+    page_map[cindex].disk_addr = daddr;
+    bcopy((char *)(page_map[cindex].disk_addr), (char *)(page_map[cindex].paddr), PAGE_SIZE);
+    insert_page_table_entry((uint32_t *)(pcb[pid].page_table), page_map[cindex].vaddr, 
+        page_map[cindex].paddr, flag, pid);
 }
 
 uint32_t do_tlb_miss(uint32_t vaddr, int pid) {
