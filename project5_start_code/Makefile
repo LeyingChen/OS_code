@@ -1,4 +1,4 @@
-# C compiler and linker
+#C compiler and linker
 CROSS_COMPILE = mipsel-linux-
 AS		= $(CROSS_COMPILE)as
 LD		= $(CROSS_COMPILE)ld

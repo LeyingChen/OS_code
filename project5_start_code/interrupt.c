@@ -83,10 +83,10 @@ void init_interrupts(void) {
 }
 
 void c_simple_handler(int ip_source, int exc_code) {
-  return;
   printk("interrupt handler not implemented for #%d:%d\n", ip_source, exc_code);
   enter_critical();
   printk("PID:%d \t Registers:\n", current_running->pid);
+  printk("page_table:%08x\n", current_running->page_table);
   printk("CP0_STATUS:%08x \t hi:%08x \t lo:%08x\n",
          current_running->kernel_tf.cp0_status, current_running->kernel_tf.hi,
          current_running->kernel_tf.lo);
@@ -126,6 +126,7 @@ void c_simple_handler(int ip_source, int exc_code) {
       "gp:%08x \t sp:%08x \t fp:%08x \t ra:%08x \n",
       current_running->kernel_tf.regs[28], current_running->kernel_tf.regs[29],
       current_running->kernel_tf.regs[30], current_running->kernel_tf.regs[31]);
+    return;
 }
 
 extern char screen[];
@@ -270,20 +271,30 @@ void fake_irq7(void) {
 
 void handle_tlb_c(void)
 {
-    printk("\n\n\nHandle TLB requirement!!!\n\n\n");
+    printk("\nHandle TLB requirement!!!\n");
+    uint32_t bad_vaddr = current_running->user_tf.cp0_badvaddr;
+    printk("badaddr: 0x%x\n", bad_vaddr);
+    uint32_t pt_addr = current_running->page_table;
+    printk("page_table addr: 0x%08x\n", pt_addr);
+    uint32_t pte_ctt1 = ((uint32_t *)pt_addr)[bad_vaddr>>12];
+    printk("pte1 content: 0x%08x\n", pte_ctt1);
+    uint32_t pte_ctt2 = ((uint32_t *)pt_addr)[(bad_vaddr>>12) + 1];
+    printk("pte2 content: 0x%08x\n", pte_ctt2);
+
+    printk("registers info:\n");
+    printk("t0: %08x\tt1: %08x\tt2: %08x\tt3: %08x\t\n", 
+        current_running->user_tf.regs[8], current_running->user_tf.regs[9],
+        current_running->user_tf.regs[10], current_running->user_tf.regs[11]);
+
     /*while (1) {
     ;
     }*/
-    uint32_t bad_vaddr;
+    /*uint32_t bad_vaddr;
     bad_vaddr = current_running->user_tf.cp0_badvaddr;
     uint32_t pagetable_addr;
-    pagetable_addr = current_running->page_table;
+    pagetable_addr = current_running->page_table;*/
     //int i;
-    /*if(((uint32_t *)pagetable_addr)[bad_vaddr>>12] & 0x4){
-        return ((uint32_t *)pagetable_addr)[bad_vaddr>>12]; //target pte
-    }
-    return -1;*/
-    uint32_t entry_lo0, entry_lo1;
+    /*uint32_t entry_lo0, entry_lo1;
     if(((uint32_t *)pagetable_addr)[bad_vaddr>>12] & 0x4){
         if((((uint32_t *)pagetable_addr)[bad_vaddr>>12]>>12) & 0x1){ //paddr is odd
             entry_lo0 = ((uint32_t *)pagetable_addr)[(bad_vaddr>>12) - 1]
@@ -300,5 +311,5 @@ void handle_tlb_c(void)
          "mtc0 %1, CP0_ENTRYLO1"
          :
          :"r"(entry_lo0), "r"(entry_lo1));
-    return;
+    return;*/
 }

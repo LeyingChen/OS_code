@@ -45,7 +45,7 @@ void insert_page_table_entry( uint32_t *table, uint32_t vaddr, uint32_t paddr,
                               uint32_t flag, uint32_t pid ) {
     // insert entry
     uint32_t pte_content;
-    pte_content = (paddr&0xfffff000) | (flag&0x0000003f);
+    pte_content = ((paddr&0xfffff000)>>6) | (flag&0x0000003f);
     //int page_order = (vaddr - pcb[pid].entry_point)/PAGE_SIZE;
     table[vaddr>>12] = pte_content;
 
@@ -70,7 +70,7 @@ int page_alloc( int pinned ) {
             break;
         } else free_index = -1; //no page swap currently
     } /* PAGE REPLACE */
-
+    bzero(page_map[i].paddr, PAGE_SIZE);
     ASSERT( free_index < PAGEABLE_PAGES );
     return free_index;
 }
@@ -84,6 +84,7 @@ uint32_t init_memory( void ) {
     for(i=0; i<PAGEABLE_PAGES; i++){
         page_map[i].paddr = MEM_START + i * PAGE_SIZE;
         page_map[i].vaddr = 0;
+        page_map[i].disk_addr = 0;
         page_map[i].is_used = 0;
         page_map[i].pinned = 0;
     }
@@ -109,10 +110,14 @@ uint32_t setup_page_table( int pid ) { //pid refers to the order of pcb(begin wi
         int code_findex;
         code_findex = page_alloc(0); //alloc a page for code
         //uint32_t p_vaddr = pcb[pid].entry_point;
-        bcopy((char *)pcb[pid].loc+i*(PAGE_SIZE),
-            (char *)page_map[code_findex].paddr+i*(PAGE_SIZE), PAGE_SIZE);//copy to frame directly
-        insert_page_table_entry((uint32_t *)page_table, pcb[pid].entry_point+i*(PAGE_SIZE),
+        page_map[code_findex].disk_addr = pcb[pid].loc + i*PAGE_SIZE; 
+        page_map[code_findex].vaddr = pcb[pid].entry_point + i*PAGE_SIZE;
+        bcopy((char *)page_map[code_findex].disk_addr,
+            (char *)(page_map[code_findex].paddr+i*(PAGE_SIZE)), PAGE_SIZE);//copy to frame directly
+        insert_page_table_entry((uint32_t *)page_table, page_map[code_findex].vaddr,
             page_map[code_findex].paddr+i*(PAGE_SIZE), pte_flag, pid);
+        //printk("pid: %d src addr:0x%08x dst addr:0x%08x\n",
+        //    pid, (char *)(pcb[pid].loc+i*(PAGE_SIZE)), (char *)(page_map[code_findex].paddr+i*(PAGE_SIZE)));
     }
 
     return page_table;

@@ -36,11 +36,19 @@ void write_kernel(FILE **image_file, FILE *kernel_file, Elf32_Ehdr *kernel_ehdr,
 {
 	int i;
 	char kernel[100000];
+printf("?????1\n");
 	fseek(*image_file, 512, SEEK_SET);
+printf("?????2  kernel_ehdr->e_phnum=%d\n", kernel_ehdr->e_phnum);
 	for(i=0;i<kernel_ehdr->e_phnum;i++) {
+printf("???i=%d\n", i);
 		fseek(kernel_file, kernel_phdr[i].p_offset, SEEK_SET);
+printf("?????3\n");
 		fread(kernel, (*kernel_phdr).p_filesz, 1, kernel_file);
+printf("?????4 filsz=%d\n", kernel_phdr[i].p_filesz);
+		fwrite(kernel, kernel_phdr[i].p_filesz, 1, *image_file);
+printf("?????5\n");
 	}
+printf("?????6\n");
 }
 
 void write_process(FILE **image_file, FILE *process_file, Elf32_Ehdr *process_ehdr, Elf32_Phdr *process_phdr, int process_sector)
@@ -60,7 +68,7 @@ void write_process(FILE **image_file, FILE *process_file, Elf32_Ehdr *process_eh
 int count_sectors(Elf32_Ehdr *kernel_header, Elf32_Phdr *kernel_phdr){
 	int i;
 	int  sum = 0;
-	for(i=0;i<kernel_header->e_phnum;i++)
+	for(i=0;i<kernel_header->e_phnum;i++) 
 		sum += kernel_phdr[i].p_memsz;
 	if(sum%512!=0) return sum/512+1;
 	else return sum/512;
@@ -77,13 +85,20 @@ void record_sectors(FILE **image_file, int num_sec){
 }
 
 
-void extended_opt(Elf32_Phdr *boot_phdr, int k_phnum, Elf32_Phdr *kernel_phdr, int num_sec, FILE *boot_file, FILE *kernel_file){
+void extended_opt(Elf32_Phdr *boot_phdr, int k_phnum, Elf32_Phdr *kernel_phdr, 
+    int num_sec, FILE *boot_file, FILE *kernel_file, FILE *process1_file, FILE *process2_file){
 	int i;
 	long int b_length, k_length;
 	fseek(boot_file, 0, SEEK_END);
 	b_length = ftell(boot_file);
 	fseek(kernel_file, 0, SEEK_END);
 	k_length = ftell(kernel_file);
+        long int p1_length, p2_length;
+        fseek(process1_file, 0, SEEK_END);
+        p1_length = ftell(process1_file);
+        fseek(process2_file, 0, SEEK_END);
+        p2_length = ftell(process2_file);
+
 	printf("\nbootblock information:\n");
 	printf("length of bootblock: %ld\n", b_length);
 	printf("sectors: %d\n", num_sec);
@@ -101,6 +116,9 @@ void extended_opt(Elf32_Phdr *boot_phdr, int k_phnum, Elf32_Phdr *kernel_phdr, i
 		printf("the file size of segment(p_filesz): 0x%x\n", kernel_phdr[i].p_filesz);
 		printf("the memory size of segment(p_memsz): 0x%x\n", kernel_phdr[i].p_memsz);
 	}
+
+       printf("length of process1: %ld\n", p1_length);
+       printf("length of process2: %ld\n", p2_length);
 }
 
 
@@ -125,41 +143,48 @@ int main(int argc, char *argv[]){
 	Elf32_Phdr *process2_phdr;
 	int process2_sector = 58;
 
-	//FILE *process3_file;
-	//Elf32_Ehdr *process3_ehdr;
-	//Elf32_Phdr *process3_phdr;
-	//int process3_sector = 288;
+/*	FILE *process3_file;
+	Elf32_Ehdr *process3_ehdr;
+	Elf32_Phdr *process3_phdr;
+	int process3_sector = 288;
 
-	//FILE *process4_file;
-	//Elf32_Ehdr *process4_ehdr;
-	//Elf32_Phdr *process4_phdr;
-	//int process4_sector = 304;
-
-	kernel_ehdr = malloc(sizeof(Elf32_Ehdr));
+	FILE *process4_file;
+	Elf32_Ehdr *process4_ehdr;
+	Elf32_Phdr *process4_phdr;
+	int process4_sector = 304;
+*/	
+	kernel_ehdr = malloc(sizeof(Elf32_Ehdr)); 
 	boot_ehdr = malloc(sizeof(Elf32_Ehdr));
 
-	process1_ehdr = malloc(sizeof(Elf32_Ehdr));
+	process1_ehdr = malloc(sizeof(Elf32_Ehdr)); 
 	process2_ehdr = malloc(sizeof(Elf32_Ehdr));
-	//process3_ehdr = malloc(sizeof(Elf32_Ehdr));
-	//process4_ehdr = malloc(sizeof(Elf32_Ehdr));
+//	process3_ehdr = malloc(sizeof(Elf32_Ehdr));
+//	process4_ehdr = malloc(sizeof(Elf32_Ehdr));
 
+printf("!!!!\n");
 	image_file = fopen("image", "w+");
+printf("1\n");
 
 	boot_phdr = read_exec_file(&boot_file, argv[argc-4], &boot_ehdr);
 	write_bootblock(&image_file, boot_file, boot_ehdr, boot_phdr);
+printf("2\n");
 
 	kernel_phdr = read_exec_file(&kernel_file, argv[argc-3], &kernel_ehdr);
+printf("3\n");
 	write_kernel(&image_file, kernel_file, kernel_ehdr, kernel_phdr);
+printf("4\n");
 
 	process1_phdr = read_exec_file(&process1_file, argv[argc-2], &process1_ehdr);
 	write_process(&image_file, process1_file, process1_ehdr, process1_phdr, process1_sector);
 	process2_phdr = read_exec_file(&process2_file, argv[argc-1], &process2_ehdr);
 	write_process(&image_file, process2_file, process2_ehdr, process2_phdr, process2_sector);
-	//process3_phdr = read_exec_file(&process3_file, argv[argc-2], &process3_ehdr);
-	//write_process(&image_file, process3_file, process3_ehdr, process3_phdr, process3_sector);
-	//process4_phdr = read_exec_file(&process4_file, argv[argc-1], &process4_ehdr);
-	//write_process(&image_file, process4_file, process4_ehdr, process4_phdr, process4_sector);
+/*	process3_phdr = read_exec_file(&process3_file, argv[argc-2], &process3_ehdr);
+	write_process(&image_file, process3_file, process3_ehdr, process3_phdr, process3_sector);
+	process4_phdr = read_exec_file(&process4_file, argv[argc-1], &process4_ehdr);
+	write_process(&image_file, process4_file, process4_ehdr, process4_phdr, process4_sector);
+*/
 
+printf("!!!!\n");
 	k_phnum = kernel_ehdr->e_phnum;
 
 //	num_sec = count_kernel_sectors(kernel_ehdr, kernel_phdr);
@@ -167,16 +192,18 @@ int main(int argc, char *argv[]){
 	num_sec = process2_sector + count_sectors(process2_ehdr, process2_phdr) - 1;
 	record_sectors(&image_file, num_sec);
 
-	if(!strncmp("--extended", argv[1], 11)) extended_opt(boot_phdr, k_phnum, kernel_phdr, num_sec, boot_file, kernel_file);
+	if(!strncmp("--extended", argv[1], 11)) extended_opt(boot_phdr, k_phnum, kernel_phdr, 
+            num_sec, boot_file, kernel_file, process1_file, process2_file);
 
+printf("!!!!\n");
 	fclose(boot_file);
 	fclose(kernel_file);
 	fclose(image_file);
 	fclose(process1_file);
 	fclose(process2_file);
-	//fclose(process3_file);
-	//fclose(process4_file);
-
+//	fclose(process3_file);
+//	fclose(process4_file);
+	
 	free(kernel_ehdr);
 	free(kernel_phdr);
 	free(boot_ehdr);
@@ -185,8 +212,8 @@ int main(int argc, char *argv[]){
 	free(process1_phdr);
 	free(process2_ehdr);
 	free(process2_phdr);
-	//free(process3_ehdr);
-	//free(process3_phdr);
-	//free(process4_ehdr);
-	//free(process4_phdr);
+//	free(process3_ehdr);
+//	free(process3_phdr);
+//	free(process4_ehdr);
+//	free(process4_phdr);
 }

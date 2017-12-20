@@ -388,32 +388,62 @@ LEAF(set_pt) #change the ASID of entryhi
     lw      k1, 0(k1)
     lw      k1, 328(k1)          #pid
     mfc0    k0, CP0_ENTRYHI
-    andi    k0, k0, 0xfffff000
-    andi    k1, k1, 0x00000fff
-    ori     k0, k0, k1
+    li      t0, 0xffffe000
+    and     k0, k0, t0
+    #andi    k0, k0, 0xfffff000
+    #andi    k1, k1, 0x00000fff
+    or      k0, k0, k1
     mtc0    k0, CP0_ENTRYHI
     jr      ra
+    nop
 END(set_pt)
 
 /* DONE */
 NESTED(handle_tlb,0,sp)
     SAVE_CONTEXT(USER)
-    jal     handle_tlb_c         #v0 is the pte now
-    mfc0    k0, CP0_BADVADDR
-    srl     k0, k0, 12
-    la      k1, current_running
-    lw      k1, 0(k1)
-    lw      k1, 328(k1)          #pid
-    andi    k1, k1, 0x00000fff
-    or      k0, k0, k1
-    mtc0    k0, CP0_ENTRYHI
-    li      k0, 0x00000000
-    mtc0    k0, CP0_PAGEMASK
-    # i hope cp0_entryLo0, cp0_entryLo1
-    # can be solved in c-code
+    PUTCHAR 65 P5
+    nop
+    la      t7, current_running
+    lw      t7, 0(t7)
+    lw      t0, 328(t7)           # pid
+    lw      t1, 360(t7)           # page table addr for pcb[pid]
+    lw      t3, 304(t7)           # badvaddr
+    #mfc0    t2, CP0_BADVADDR      # badvaddr
+    PUTCHAR 67 P7
+    #mfc0    t1, CP0_BADVADDR
+    #nop
+    srl     t2, t3, 12
+    li      t6, 0xfffffffe
+    and     t2, t2, t6            # vaddr
+    sll     t2, t2, 2             # vaddr*4
+    add     t1, t1, t2            # page_table[vaddr]
+
+    #jal     handle_tlb_c          # v0 is the pte now
+    #nop
+
+    PUTCHAR 68 P8
+
+    lw      t4, 0(t1)             #
+    mtc0    t4, CP0_ENTRYLO0
+    lw      t5, 4(t1)             # care nothing about V-bit?
+    mtc0    t5, CP0_ENTRYLO1
+    PUTCHAR 69 P9
+
+    #PUTCHAR 71 P11
+    li      t4, 0xffffe000
+    and     t3, t3, t4            # high 20-bit of badvaddr 
+    or      t0, t0, t3            # {VPN, ASID}
+    mtc0    t0, CP0_ENTRYHI
+    #li      t0, 0x00000000
+    mtc0    zero, CP0_PAGEMASK
+    PUTCHAR 72 P12
+
     tlbwr
-    LEAVE_CRITICAL
+    nop
+    nop
+    #LEAVE_CRITICAL
     RESTORE_CONTEXT(USER)
+    PUTCHAR 73 P13
     j return_from_exception
 END(handle_tlb)
 
