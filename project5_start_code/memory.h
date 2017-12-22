@@ -20,17 +20,19 @@ enum {
   PE_UC = (0x400 >> 6),
 
   /* Constants to simulate a very small physical memory. */
-  PAGEABLE_PAGES = 128,
+  PAGEABLE_PAGES = 3,
 };
 
-/* TODO: Structure of an entry in the page map */
+/* DONE: Structure of an entry in the page map */
 typedef struct {
+    node_t p_node;
     uint32_t paddr;
     uint32_t vaddr;
     uint32_t disk_addr;
     int pinned;
     int is_used;
-    // design here
+    int index;
+    int pid;
 } page_map_entry_t;
 
 

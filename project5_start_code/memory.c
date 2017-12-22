@@ -9,8 +9,11 @@
 #include "printf.h"
 #include "scheduler.h"
 #include "util.h"
+#include "queue.h"
 
 #define MEM_START 0xa0908000
+
+node_t page_queue;
 
 /* Static global variables */
 // Keep track of all pages: their vaddr, status, and other properties
@@ -61,18 +64,36 @@ void insert_page_table_entry( uint32_t *table, uint32_t vaddr, uint32_t paddr,
  * Swap out a page if no space is available.
  */
 int page_alloc( int pinned ) {
-    int i, free_index;
+    int i, free_index = -1;
     for(i=0; i<PAGEABLE_PAGES; i++){
-        if(page_map[i].is_used == 0){  //find an unused map
-            page_map[i].is_used = 1;
-            page_map[i].pinned = pinned;
+        if(page_map[i].is_used == 0){  //find an unused frame
             free_index = i;
             break;
-        } else free_index = -1; //no page swap currently
-    } /* PAGE REPLACE */
-    bzero(page_map[i].paddr, PAGE_SIZE);
-    ASSERT( free_index < PAGEABLE_PAGES );
+        }
+    }
+    if(free_index == -1){ // no frame avaliable
+        //may need to write back
+        //node_t *item_to_swap;
+        page_map_entry_t *page_to_swap;
+        //item_to_swap = dequeue(&page_queue);
+        page_to_swap = (page_map_entry_t *)dequeue(&page_queue);
+        free_index = page_to_swap->index;
+        //uint32_t pt_addr = current_running->page_table;
+        uint32_t pt_addr = pcb[page_to_swap->pid].page_table;
+        insert_page_table_entry((uint32_t *)pt_addr, pcb[page_to_swap->pid].entry_point, 
+            0x00000000, 0x0, page_to_swap->pid);
+        //printk("swap page %d\n", free_index);
+    }
+    page_map[free_index].is_used = 1;
+    page_map[free_index].pinned = pinned;
+    if(!pinned){
+        //printk("unpinned page %d\n", free_index);
+        enqueue(&page_queue, (node_t *)(&page_map[free_index]));
+    }
+    bzero((char *)page_map[free_index].paddr, PAGE_SIZE);
     return free_index;
+
+    ASSERT( free_index < PAGEABLE_PAGES );
 }
 
 /* DONE:
@@ -87,7 +108,11 @@ uint32_t init_memory( void ) {
         page_map[i].disk_addr = 0;
         page_map[i].is_used = 0;
         page_map[i].pinned = 0;
+        page_map[i].index = i;
+        page_map[i].p_node.prev = NULL;
+        page_map[i].p_node.next = NULL;
     }
+    queue_init(&page_queue);
     return 0;
 }
 
@@ -99,7 +124,7 @@ uint32_t setup_page_table( int pid ) { //pid refers to the order of pcb(begin wi
     // alloc page for page table
     int frame_index;
     frame_index = page_alloc(1); //page table can't be replace, it is pinned
-
+    printk("page table %d pinned: %d index:%d\n", pid, page_map[frame_index].pinned, frame_index);
     // initialize PTE and insert several entries into page tables using insert_page_table_entry
     int i;
     page_table = page_map[frame_index].paddr;
@@ -121,6 +146,7 @@ uint32_t setup_page_table( int pid ) { //pid refers to the order of pcb(begin wi
 }
 
 void refresh_page_map(int cindex, uint32_t vaddr, uint32_t daddr, uint32_t flag, int pid){
+    page_map[cindex].pid = pid;
     page_map[cindex].vaddr = vaddr;
     page_map[cindex].disk_addr = daddr;
     bcopy((char *)(page_map[cindex].disk_addr), (char *)(page_map[cindex].paddr), PAGE_SIZE);

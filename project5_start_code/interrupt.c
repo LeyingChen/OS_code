@@ -275,7 +275,7 @@ void handle_tlb_c(void)
     uint32_t bad_vaddr = current_running->user_tf.cp0_badvaddr;
     printk("badaddr: 0x%08x\n", bad_vaddr);
     uint32_t pt_addr = current_running->page_table;
-    printk("r u kidding me???\n");
+    //printk("r u kidding me???\n");
     uint32_t pte_ctt = ((uint32_t *)pt_addr)[bad_vaddr>>12];
     // find disk_addr through current_running;
     printk("pte: 0x%08x\n", pte_ctt);
