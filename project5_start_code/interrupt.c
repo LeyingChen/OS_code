@@ -289,6 +289,8 @@ void handle_tlb_c(void)
         code_index = page_alloc(0); // alloc a page for code
         printk("found a free page%d!\n", code_index);
         refresh_page_map(code_index, pro_entry_point, disk_loc, flag, current_running->pid);
+    } else { // valid page
+        refresh_page_q(bad_vaddr);
     }
     return; // now we've refresh the right pte
     /*while (1) {

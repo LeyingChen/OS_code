@@ -73,12 +73,9 @@ int page_alloc( int pinned ) {
     }
     if(free_index == -1){ // no frame avaliable
         //may need to write back
-        //node_t *item_to_swap;
         page_map_entry_t *page_to_swap;
-        //item_to_swap = dequeue(&page_queue);
         page_to_swap = (page_map_entry_t *)dequeue(&page_queue);
         free_index = page_to_swap->index;
-        //uint32_t pt_addr = current_running->page_table;
         uint32_t pt_addr = pcb[page_to_swap->pid].page_table;
         insert_page_table_entry((uint32_t *)pt_addr, pcb[page_to_swap->pid].entry_point, 
             0x00000000, 0x0, page_to_swap->pid);
@@ -152,6 +149,26 @@ void refresh_page_map(int cindex, uint32_t vaddr, uint32_t daddr, uint32_t flag,
     bcopy((char *)(page_map[cindex].disk_addr), (char *)(page_map[cindex].paddr), PAGE_SIZE);
     insert_page_table_entry((uint32_t *)(pcb[pid].page_table), page_map[cindex].vaddr, 
         page_map[cindex].paddr, flag, pid);
+}
+
+void refresh_page_q(uint32_t bad_addr){
+    int i,pindex=-1;
+    node_t * node_move;
+    page_map_entry_t * page_move;
+    for(i=0; i<PAGEABLE_PAGES; i++){
+        if(page_map[i].vaddr == (bad_addr & 0xfffffffe)){
+            pindex = i;
+            break;
+        }
+    }
+    if(pindex != -1){ //found one
+        page_move = &page_map[pindex];
+        node_move = (node_t *)page_move;
+        node_move->prev = node_move->next;
+        node_move->next = node_move->prev;
+        enqueue(&page_queue, node_move);
+    }
+    return;
 }
 
 uint32_t do_tlb_miss(uint32_t vaddr, int pid) {
