@@ -91,7 +91,8 @@ static void initialize_pcb( pcb_t *p, pid_t pid, struct task_info *ti ) {
     case PROCESS:
         procn++;
         p->kernel_tf.regs[ 29 ] = (uint32_t) stack_new();
-        p->user_tf.regs[ 29 ]   = (uint32_t) stack_new();
+        //p->user_tf.regs[ 29 ]   = (uint32_t) stack_new();
+        p->user_tf.regs[ 29 ]   = (uint32_t) 0x37fff0;
         p->nested_count         = 0;
         // TODO: p5 here!
         p->size                 = ti->size;

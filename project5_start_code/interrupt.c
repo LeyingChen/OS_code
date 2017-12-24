@@ -271,24 +271,36 @@ void fake_irq7(void) {
 
 void handle_tlb_c(void)
 {
-    printk("\nHandle TLB requirement!!!\n");
+//    printk("\nHandle TLB requirement!!!\n");
     uint32_t bad_vaddr = current_running->user_tf.cp0_badvaddr;
-    printk("badaddr: 0x%08x\n", bad_vaddr);
+//    printk("badaddr: 0x%08x\n", bad_vaddr);
     uint32_t pt_addr = current_running->page_table;
     //printk("r u kidding me???\n");
     uint32_t pte_ctt = ((uint32_t *)pt_addr)[bad_vaddr>>12];
     // find disk_addr through current_running;
-    printk("pte: 0x%08x\n", pte_ctt);
+//    printk("pte: 0x%08x\n", pte_ctt);
     if(!(pte_ctt&2)){ // invalid page
-        printk("handle page fault!\n");
-        uint32_t disk_loc = current_running->loc;
-        uint32_t pro_entry_point = current_running->entry_point;
-        // processes have only 1 page of code anyway
-        int code_index;
-        uint32_t flag = 0x02;
-        code_index = page_alloc(0); // alloc a page for code
-        printk("found a free page%d!\n", code_index);
-        refresh_page_map(code_index, pro_entry_point, disk_loc, flag, current_running->pid);
+//        printk("handle page fault!\n");
+        if((bad_vaddr>>20) != 3){ //not stack
+            uint32_t disk_loc = current_running->loc;
+            uint32_t pro_entry_point = current_running->entry_point;
+            // processes have only 1 page of code anyway
+            int code_index;
+            uint32_t flag = 0x02; //V-bit & D-bit is 1
+            code_index = page_alloc(0); // alloc a page for code
+//            printk("found a free page%d for code!\n", code_index);
+            refresh_page_map(code_index, pro_entry_point, disk_loc, flag, current_running->pid);
+        } else { // is stack
+            //uint32_t s_paddr;
+            uint32_t s_vaddr;
+            int stack_index;
+            //uint32_t flag = 0x06;
+            stack_index = page_alloc(1);
+//            printk("found a free page%d for stack!\n", stack_index);
+            s_vaddr = bad_vaddr;
+            refresh_page_map_s(stack_index, s_vaddr, current_running->pid);
+            //printk("")
+        }
     } else { // valid page
         refresh_page_q(bad_vaddr);
     }

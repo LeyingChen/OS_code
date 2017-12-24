@@ -54,7 +54,7 @@ void insert_page_table_entry( uint32_t *table, uint32_t vaddr, uint32_t paddr,
 
     // tlb flush
     uint32_t entry_hi;
-    entry_hi = (vaddr&0xfffff000) | (pid&0x00000fff);
+    entry_hi = (vaddr&0xffffe000) | (pid&0x00000fff);
     tlb_flush(entry_hi);
 }
 
@@ -121,7 +121,7 @@ uint32_t setup_page_table( int pid ) { //pid refers to the order of pcb(begin wi
     // alloc page for page table
     int frame_index;
     frame_index = page_alloc(1); //page table can't be replace, it is pinned
-    printk("page table %d pinned: %d index:%d\n", pid, page_map[frame_index].pinned, frame_index);
+//    printk("page table %d pinned: %d index:%d\n", pid, page_map[frame_index].pinned, frame_index);
     // initialize PTE and insert several entries into page tables using insert_page_table_entry
     int i;
     page_table = page_map[frame_index].paddr;
@@ -149,6 +149,13 @@ void refresh_page_map(int cindex, uint32_t vaddr, uint32_t daddr, uint32_t flag,
     bcopy((char *)(page_map[cindex].disk_addr), (char *)(page_map[cindex].paddr), PAGE_SIZE);
     insert_page_table_entry((uint32_t *)(pcb[pid].page_table), page_map[cindex].vaddr, 
         page_map[cindex].paddr, flag, pid);
+}
+
+void refresh_page_map_s(int sindex, uint32_t vaddr, int pid){
+    page_map[sindex].pid = pid;
+    page_map[sindex].vaddr = vaddr;
+    insert_page_table_entry((uint32_t *)(pcb[pid].page_table), page_map[sindex].vaddr, 
+        page_map[sindex].paddr, 0x06, pid);
 }
 
 void refresh_page_q(uint32_t bad_addr){

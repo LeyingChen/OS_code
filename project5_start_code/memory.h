@@ -20,7 +20,7 @@ enum {
   PE_UC = (0x400 >> 6),
 
   /* Constants to simulate a very small physical memory. */
-  PAGEABLE_PAGES = 3,
+  PAGEABLE_PAGES = 5,
 };
 
 /* DONE: Structure of an entry in the page map */
@@ -59,5 +59,6 @@ uint32_t setup_page_table(int pid);
 // other functions defined here
 //
 void refresh_page_map(int cindex, uint32_t vaddr, uint32_t daddr, uint32_t flag, int pid);
+void refresh_page_map_s(int sindex, uint32_t vaddr, int pid);
 void refresh_page_queue(uint32_t bad_addr);
 #endif /* !MEMORY_H */

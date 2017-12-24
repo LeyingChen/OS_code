@@ -312,14 +312,15 @@ END(simple_handler)
 
 
 NESTED(handle_syscall,0,sp)
-	SAVE_CONTEXT(USER)
+    SAVE_CONTEXT(USER)
+    RESTORE_STACK(KERNEL)
 	//RESTORE_CONTEXT(KERNEL)
-  add   a3,a2,$0
-  add   a2,a1,$0
-  add   a1,a0,$0
-  add   a0,v0,$0
+    add   a3,a2,$0
+    add   a2,a1,$0
+    add   a1,a0,$0
+    add   a0,v0,$0
 
-  jal system_call_helper
+    jal system_call_helper
 
   LEAVE_CRITICAL
 	RESTORE_CONTEXT(USER)
@@ -327,15 +328,24 @@ NESTED(handle_syscall,0,sp)
 END(handle_syscall)
 
 NESTED(handle_int,0,sp)
-  SAVE_CONTEXT(USER)
-  mfc0  k0, CP0_CAUSE           /* Read Cause register for IP bits */
-  //mfc0  k1, CP0_STATUS        /* and Status register for IM bits */
-  andi  k0, k0, CAUSE_IPL       /* Keep only IP bits from Cause */
-  //and   k0, k0, k1            /* and mask with IM bits */
-  clz   k0, k0                  /* Find first bit set, IP7..IP0; k0 = 16..23 */
-  xori  k0, k0, 0x17            /* 16..23 => 7..0 */
+    SAVE_CONTEXT(USER)
+    la    k0, current_running
+    lw    k0, 0(k0)
+    lw    k0, NESTED_COUNT(k0)
+    bnez  k0, no_sp
+    nop
+#    PUTCHAR 74 P14
+    RESTORE_STACK(KERNEL)
+#    PUTCHAR 74 P14
+no_sp:
+    mfc0  k0, CP0_CAUSE           /* Read Cause register for IP bits */
+    //mfc0  k1, CP0_STATUS        /* and Status register for IM bits */
+    andi  k0, k0, CAUSE_IPL       /* Keep only IP bits from Cause */
+    //and   k0, k0, k1            /* and mask with IM bits */
+    clz   k0, k0                  /* Find first bit set, IP7..IP0; k0 = 16..23 */
+    xori  k0, k0, 0x17            /* 16..23 => 7..0 */
 
-  li    k1, 7
+    li    k1, 7
 
 //  ENTER_CRITICAL
 
@@ -401,7 +411,9 @@ END(set_pt)
 /* DONE */
 NESTED(handle_tlb,0,sp)
     SAVE_CONTEXT(USER)
-    #PUTCHAR 65 P5
+    RESTORE_STACK(KERNEL)
+
+#    PUTCHAR 65 P5
     jal     handle_tlb_c          # let's see if it is a page fault
     nop
     la      t7, current_running
@@ -410,7 +422,7 @@ NESTED(handle_tlb,0,sp)
     lw      t1, 360(t7)           # page table addr for pcb[pid]
     #lw      t3, 304(t7)           # badvaddr
     mfc0    t3, CP0_BADVADDR      # badvaddr
-    #PUTCHAR 67 P7
+#    PUTCHAR 67 P7
     srl     t2, t3, 12
     li      t6, 0xfffffffe
     and     t2, t2, t6            # vaddr
@@ -419,29 +431,29 @@ NESTED(handle_tlb,0,sp)
 
     #nop
 
-    #PUTCHAR 68 P8
+#    PUTCHAR 68 P8
 
     lw      t4, 0(t1)             #
     mtc0    t4, CP0_ENTRYLO0
     lw      t5, 4(t1)             # care nothing about V-bit?
     mtc0    t5, CP0_ENTRYLO1
-    #PUTCHAR 69 P9
+#    PUTCHAR 69 P9
 
-    #PUTCHAR 71 P11
+#    PUTCHAR 71 P11
     li      t4, 0xffffe000
     and     t3, t3, t4            # high 20-bit of badvaddr 
     or      t0, t0, t3            # {VPN, ASID}
     mtc0    t0, CP0_ENTRYHI
-    #li      t0, 0x00000000
+    li      t0, 0x00000000
     mtc0    zero, CP0_PAGEMASK
-    #PUTCHAR 72 P12
+#    PUTCHAR 72 P12
 
     tlbwr
     nop
     nop
     #LEAVE_CRITICAL
     RESTORE_CONTEXT(USER)
-    #PUTCHAR 73 P13
+#    PUTCHAR 73 P13
     j return_from_exception
 END(handle_tlb)
 
